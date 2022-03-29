@@ -1,0 +1,377 @@
+
+student<-read.csv("student-mat.csv",sep=";",header=T)
+head(student)
+student$Medu<-as.factor(student$Medu)
+student$Fedu<-as.factor(student$Fedu)
+student$traveltime<-as.factor(student$traveltime)
+student$studytime<-as.factor(student$studytime)
+student$famrel<-as.factor(student$famrel)
+student$freetime<-as.factor(student$freetime)
+student$goout<-as.factor(student$goout)
+student$Dalc<-as.factor(student$Dalc)
+student$Walc<-as.factor(student$Walc)
+student$health<-as.factor(student$health)
+
+
+#Descriptive Statistics of variables
+
+summary(student)
+
+#Relationships between variables
+
+
+library(corrplot)
+library(RColorBrewer)
+M <-cor(student[,c(3,15,30,31,32,33)])
+corrplot(M, type="upper", order="hclust",
+         col=brewer.pal(n=8, name="RdYlBu"))
+```
+G1 and G2, G1 and G3, G2 and G3 have strong linear relationships. Also, G1 and failures, G2 and failures, G3 and failures have neither weak nor strong linear relationship.
+
+#frequency tables for some variables
+```{r}
+library(epiDisplay)
+tab1(student$school, sort.group = "decreasing", cum.percent = TRUE)
+```
+```{r}
+tab1(student$sex, sort.group = "decreasing", cum.percent = TRUE)
+```
+
+```{r}
+tab1(student$address, sort.group = "decreasing", cum.percent = TRUE)
+```
+
+```{r}
+tab1(student$famsize, sort.group = "decreasing", cum.percent = TRUE)
+```
+
+```{r}
+tab1(student$Pstatus, sort.group = "decreasing", cum.percent = TRUE)
+```
+
+```{r}
+tab1(student$guardian, sort.group = "decreasing", cum.percent = TRUE)
+```
+
+##ANALYSIS
+#Backround analysis
+```{r}
+hist(student$age,breaks =9,col="blue",main="Histogram of Age",xlab="Age")
+```
+It has a right skewed distribution. Most of the students' ages are between 15 and 16.
+
+```{r}
+library(plotrix)
+table(student$sex)
+tbl <- c(208,187) 
+pielbl <- c("female","male")
+pie3D(tbl,labels=pielbl,explode=0.1, main="Pie Chart of Gender")
+```
+There are more female students than males, but the numbers are very close to each other. Thus, we can say we have
+a balance in gender.
+
+```{r}
+freq<-table(student$reason)
+barplot(sort(freq,decreasing = T),main="Bar Plot of The Reason to Choose This School",col=c("red","blue","green","yellow"))
+```
+Most of the students choose this school because of course preference. The other reasons to choose this school are being close to their home, school reputation and other, respectively. 
+
+
+#Research Question 1
+ Do Final Grades of Students change according to their Study Time?
+```{r}
+boxplot(G3~as.factor(studytime),data=student,main="Box Plot of Final Grade Acc. to Study Time",xlab="Weekly Study Time of Students",ylab="Final Grade",col="orange")
+```
+Box Plot shows that all study time of students median values of final grades are very close to each other. That is, it seems that there is no difference between final grades in terms of study time. 
+Also, there are some outliers. 
+1 => Right skewed
+2 => Left
+3 => Right
+4 => Almost symmetric
+
+```{r}
+shapiro.test(student$G3[student$studytime=="1"]) 
+shapiro.test(student$G3[student$studytime=="2"])
+shapiro.test(student$G3[student$studytime=="3"])
+shapiro.test(student$G3[student$studytime=="4"])
+```
+Just one group is normally distributed, but we can assume normality since we do not have large data set.
+
+```{r}
+bartlett.test(G3~as.factor(studytime),data=student) 
+```
+p-value is greater than significance level 0.05, there is no enough evidence to reject the null hypothesis. That is, the variances are same. Thus, the homogeneity of variances is checked to perform an anova test.
+
+```{r}
+anova<-aov(G3~as.factor(studytime),data=student) #fitting ANOVA model
+summary(anova)
+```
+According to Anova table's p-value which is 0.161, again there is no evidence to reject the null hypothesis that all treatments have equal mean values. That is, Final grades of students do not differ in terms of weekly study time of students.
+
+#Research question 2
+Do First Period Grades of students change according to their gender?
+```{r}
+df<-split(student$G1,student$sex) #splits sex in terms of G1
+```
+
+```{r}
+var.test(df$F,df$M)
+```
+Since the p-value of F test is 0.4967 and it is greater than significance level 0.05, we do not have enough evidence to reject the null hypothesis. In other words, variances of Females and Males with respect to First Period Grades are equal.
+
+```{r}
+shapiro.test(df$F)
+shapiro.test(df$M)
+```
+They are not normal. If we assume normality;
+
+```{r}
+t.test(df$F,df$M,alternative = c("two.sided"),var.equal = TRUE, conf.level = 0.95) #to conduct a two-sided t-test
+```
+According to two-sided test, it can be said that there is no difference between Females and Males in terms of First Period Grade. This is because, p-value of the test is higher than the significance level which is 0.05, so we do not have enough evidence to reject the null hypothesis.
+
+```{r}
+boxplot(G1~sex,data=student,main="Box Plot of First Period Grade wrt Gender",xlab="Gender",ylab="First Period Grade",col="gray25")
+```
+Box plot shows the same result as we find in two sided test. There is no big difference in median values of Females and Males according to their First Period Grades. Actually, there is a slight difference. 
+
+#Research question 3
+Is mean value of Final Grades of students higher than 12?
+```{r}
+set.seed(111)
+sample<-sample(student$G3,size = 28) #taking sample with size 28
+```
+
+```{r}
+shapiro.test(sample)
+```
+According to Shapiro Wilk test, since the p-value is significantly higher than significance level, it can be said that there is no enough evidence to reject the null hypothesis. That is, Final grades of students follows normal distribution.
+
+```{r}
+t.test(sample,alternative = "greater",mu=12)
+```
+Since the p-value of one sample ttest which is 0.8148 is clearly higher than the significance level alpha 0.05, we do not have enough evidence to reject the null hypothesis. Thus, the mean value of final grades of students is not greater than 12.
+
+```{r}
+hist(sample,main="Histogram of Final Grades",col="yellow2",xlab="Final Grades")
+```
+It seems final grades of students is normally distributed.
+#Research Question 4
+Do Final grades of students differ according to their freetime?
+```{r}
+boxplot(G3~freetime,data=student,main="Box Plot of Final Grade Acc. to Freetime",xlab="Free Time",ylab="Final Grade",col="darkred")
+```
+According to Box plot, it can be said that median values of final grades with respect to free time are close to each other. 
+Students who rate their free time as high constitute most of the students which can be seen from box plot's range.
+There are some outliers.
+1 => symmetric
+2 => symmetric
+3 => right skewed
+4 => almost symmetric
+5 => almost symmetric
+
+```{r}
+shapiro.test(student$G3[student$freetime=="1"]) 
+shapiro.test(student$G3[student$freetime=="2"])
+shapiro.test(student$G3[student$freetime=="3"])
+shapiro.test(student$G3[student$freetime=="4"])
+shapiro.test(student$G3[student$freetime=="5"])
+```
+According to shapiro wilk tests; some of them follows normal distribution. If we assume others are normally distributed, too. We can conduct anova test.
+
+```{r}
+bartlett.test(G3~as.factor(freetime),data=student) 
+```
+Since the p-value of Bartlett Homogeneity of variances test is 0.7034 which is significantly greater than significance level taken 0.05, we do not have enough evidence to reject the null hypothesis. That is, variances of each group are equal. Thus, the homogeneity of variances assumption is appropriate to conduct anova.
+
+```{r}
+anova<-aov(G3~as.factor(freetime),data=student) 
+summary(anova)
+```
+According to Anova table's p-value which is 0.0657 is slightly higher than the significance level 0.05, so we do not have enough evidence to reject the null hypothesis. In other words, mean values of final grades of students with respect to their free time do not differ for each rate of free time.
+
+#Research question 5
+Which variable has more affect on final grades of students?
+```{r}
+genrlmdl<-lm((G3+1)~.,data=student)
+summary(genrlmdl)
+```
+Adjusted R-squared is 0.8308, which shows our model is good. That is variability in Final Grades can be explained 83 % by other variables. p-value is less than the significance level; that is, our model is significant. However, there are some insignificant coefficients, so we need to eliminate them from the model.
+```{r}
+shapiro.test(residuals(genrlmdl))
+```
+Shapiro wilk normality test shows that residuals of model are not normally distributed since the p-value is clearly less than the significance level. Thus, there is a need for transformation.
+```{r}
+library(MASS)
+boxcox(genrlmdl)
+a<-boxcox(genrlmdl)
+lambda<-a$x[which.max(a$y)]
+transformed<-lm(((G3^lambda-1)/lambda) ~ .,data=student)
+summary(transformed)
+```
+Since the box cox lambda value for the model is between 1 and 2, we did a box cox transformation. After the transformation, the adjusted R-squared value got higher and our model is still significant, but there are still insignificant coefficients.
+
+```{r}
+stepAIC(transformed,direction = "both")
+```
+After doing stepwise elimination ,backward and forward, we can discriminate some insignificant coefficents. The model after stepwise elimination is;
+G3 = -9.3454 + -0.7293*age + -0.1590*Fedu1 + -2.6245*Fedu2 + -0.5813*Fedu3 + -1.4218*Fedu4 + 1.4967*guardianmother+ 0.3385*guardianother + 0.9731*famsupyes + -1.0496*paidyes + -1.3333*activitiesyes + -.9425*romanticyes + -2.6523*famrel2 + 0.5995*famrel3 + 0.6437*famrel4 + 2.7991*famrel5 + 1.6090*G1 + 3.2479*G2
+
+If there is an increase of 1 percent in age is associated with a -0.7293 percent increase in the final grades, when other variables hold fixed....
+If all variables hold constant, the average value for final grades is -9.3454.
+
+Final grades are affected by age, Fedu, guardian, famsup, paid, activities, romantic, famrel, G1 and G2. G2 has the highest effect on final grades since its coefficient in the model is the highest.
+
+```{r}
+lastmodel<-lm(formula = ((G3^lambda - 1)/lambda) ~ age + Fedu + guardian + 
+    famsup + paid + activities + romantic + famrel + G1 + G2, 
+    data = student)
+summary(lastmodel)
+```
+Our last model after the elimination has adjusted rsquared value as 0.8923 and our model is significant.There are still insignificant coefficients.
+```{r}
+shapiro.test(residuals(lastmodel))
+```
+Shapiro test shows that residuals are not normally distributed for the last model. There is a need for further statistical analysis which we do not know right now.
+
+```{r}
+mdl<-lm(formula = ((G3^lambda - 1)/lambda) ~ age  + guardian + 
+     activities  + G1 + G2, 
+    data = student)
+summary(mdl)
+shapiro.test(residuals(mdl))
+```
+
+
+
+Final grades are affected by age, guardian, activities, G1 and G2. G2 has the highest effect on final grades since its coefficient in the model is the highest.
+
+#Research Question 6
+Do absences of students differ for being in a romantic relationship or not?
+```{r}
+set.seed(147)
+abse<-sample(student$absences,size=50)
+rom<-sample(student$romantic,size=50)
+df<-data.frame(abse,rom)
+```
+
+```{r}
+boxplot(abse~rom,data=df,main="Box Plot of Romantic Relationship and Absences",xlab="With a Romantic Relationship",ylab="Absences",col="pink3")
+```
+According to the Box plot of romantic relationship and absences, it can be said that the median values are very close to each other. The two box plots seem to have right skewed distribution. There are some outliers in the box plot of having no romantic relationship with respect to absences.
+
+```{r}
+abs<-split(df$abse,df$rom)
+```
+
+```{r}
+var.test(abs$no,abs$yes)
+```
+According to F test's p-value which is 0.03719 is less than significance level 0.05, so we have enough evidence to reject the null hypothesis. Thus, the variances of two variables are not equal.
+
+```{r}
+shapiro.test(abs$no)
+shapiro.test(abs$yes)
+```
+According to shapşro wilk tests, variables do not follow normal distribution. Since we have small sample in this case, we can assume normality.
+
+```{r}
+t.test(abs$no,abs$yes,alternative = c("two.sided"),var.equal = FALSE,conf.level = 0.95)
+```
+According to Welch two sample ttest's p-value which is 0.7559 is significantly higher than the significance level 0.05, we have enough evidence to reject the null hypothesis that the mean value of absences with respect to romantic relationship do not differ for being in a relationship or not.
+
+#Research question 7
+Are family educational support and extra educational support related?
+```{r}
+conttbl<-table(student$famsup,student$schoolsup,dnn = c("Family","Extra"))
+addmargins(conttbl)
+```
+According to contingency table, 140 students have neither family nor extra educational support while 38 students have both family and extra educational support out of 395 students. 13 students have extra educational support, but don't have family educational support. On the other hand, 204 students which is the highest observation in the contingency table have family educational support but not extra educational support.
+
+```{r}
+prop.table(conttbl)
+```
+This is the probabilities for contigency table. 51 % of them have family educational support but not extra educational support while 3.3 % of students have extra educational support but not family. 35 % of them do not have any educational support while 9.6 % of them have both educational supports.
+
+```{r}
+chisq.test(conttbl)
+```
+According to Pearson's Chi-squared test's p-value which is 0.05404 is slightly higher than the significance level taken 0.05, so we do not have enough evidence to reject the null hypothesis. That is, having family or extra educational support are independent from each other.
+
+```{r}
+mosaicplot(conttbl, main="Mosaic Plot of The Relation betw Family&Extra Educational Support")
+```
+This is the mosaic plot of the relationship between family and extra educational support. It gives the same result with contingency table.
+
+#Research Question 8
+Are final grades and absences related?
+```{r}
+plot(student$absences,student$G3,main = "Scatter Plot of Final Grades and Absences",xlab="Absences",ylab="Final Grades",col="blue")
+```
+According to scatter plot of absences and final grades, it can be said that there is no significant relationship between them.
+
+```{r}
+corr<-cor(student$absences,student$G3)
+corr
+student1<-data.frame(student$absences,student$G3)
+corrplot<-cor(student1)
+corrplot
+```
+According to the correlation table, it can be said that there is a weak linear relationship between absences and final grades of students. This is because, the correlation between them is 0.034 and it is very low value for being correlated.
+#Research question 9
+Are absences and health related?
+```{r}
+summary(student$absences)
+absences<-as.factor(ifelse(student$absences>median(student$absences),"Above","Below"))
+health<-student$health
+conttable<-table(absences,health)
+addmargins(conttable)
+```
+When absences of a student is lower than the median value of absences variable, it is assigned as below; otherwise, it is assigned as above.
+
+According to the contingency table above, it can be said that 94 students absences' are below when their health is very good. Also, 19 students absences' are above when their health is very bad. 
+
+```{r}
+prop.table(conttable)
+```
+The probabilities of contingency table is shown above. 24 % of students absences' are below when their health is very good. 10 % of students absences' are below when their health is good. 14 % of students absences' are below when their health is almost good. Those percentages form the majority, so it can be said that when students health is good, their absences is low. 
+```{r}
+chisq.test(conttable)
+```
+According to Pearson's Chi-squared test's p-value which is significantly higher than the significance level 0.05, since it equals to 0.9533. Thus, we do not have enough evidence to reject the null hypothesis that absences and health are independent. 
+```{r}
+mosaicplot(conttable,main="Mosaic Plot of the Relationship betw Absences and Health")
+```
+Mosaic plot shows the same result as contigency table.
+#Research question 10
+Do final grades differ with respect to workday alcohol consumption?
+```{r}
+boxplot(G3~Dalc,data=student,main="Box Plot of Final Grades wrt Workday Alcohol Consumption",xlab="Workday Alcohol Consumption",ylab="Final Grades",col="green2")
+```
+Box plot of final grades with respect to workday alcohol consumption shows that the median values are close to each other, so final grades may not change in terms of workday alcohol consumption.
+
+There are some outliers.
+
+1 => right skewed
+2 => symmetric
+3 => right skewed
+4 => right
+5 => right
+
+```{r}
+shapiro.test(student$G3[student$Dalc=="1"])
+shapiro.test(student$G3[student$Dalc=="2"])
+shapiro.test(student$G3[student$Dalc=="3"])
+shapiro.test(student$G3[student$Dalc=="4"])
+shapiro.test(student$G3[student$Dalc=="5"])
+```
+two of them follows normal distribution, if we assume normality;
+```{r}
+bartlett.test(G3~Dalc,data=student)
+```
+According to Bartlett test of homogeneity of variances p-value which is 0.032 is less than significance level 0.05 ;thus, we have enough evidence to reject the null hypothesis that variances are equal for each group. Consequently, homogeneity is not checked.
+```{r}
+anova<-aov(G3~Dalc,data=student)
+summary(anova)
+```
+If we do anova either way, since the p-value 0.178 is higher than the significance level, we do not have enough evidence to reject the null hypothesis. That is, the mean values for each rate of workday alcohol consumption with respect to final grades are equal.
